@@ -7232,3 +7232,41 @@ fn vertical_align_command_sets_justified() {
         assert_eq!(serde_json::to_value(crate::cmd::page::sect(&s)).unwrap()["valign"], json!(name));
     }
 }
+
+#[test]
+fn ai_settings_and_options_configuration() {
+    let mut s = s();
+    let res = run(&mut s, "ai.settings", json!({
+        "apiUrl": "https://custom.openai.api/v1",
+        "apiKey": "test-key-12345",
+        "model": "gpt-4o-mini"
+    }));
+    assert_eq!(res["apiUrl"], "https://custom.openai.api/v1");
+    assert_eq!(res["apiKey"], "test-key-12345");
+    assert_eq!(res["model"], "gpt-4o-mini");
+    assert_eq!(s.prefs.ai_api_url.as_deref(), Some("https://custom.openai.api/v1"));
+    assert_eq!(s.prefs.ai_api_key.as_deref(), Some("test-key-12345"));
+    assert_eq!(s.prefs.ai_model.as_deref(), Some("gpt-4o-mini"));
+
+    // Also configurable through file.options
+    run(&mut s, "file.options", json!({
+        "aiApiUrl": "https://another.api/v1",
+        "aiApiKey": "key-67890",
+        "aiModel": "custom-model"
+    }));
+    assert_eq!(s.prefs.ai_api_url.as_deref(), Some("https://another.api/v1"));
+    assert_eq!(s.prefs.ai_api_key.as_deref(), Some("key-67890"));
+    assert_eq!(s.prefs.ai_model.as_deref(), Some("custom-model"));
+
+    let opts = run(&mut s, "file.options", json!({}));
+    assert_eq!(opts["aiApiUrl"], "https://another.api/v1");
+    assert_eq!(opts["aiApiKey"], "key-67890");
+    assert_eq!(opts["aiModel"], "custom-model");
+}
+
+#[test]
+fn ai_prompt_requires_api_key() {
+    let mut s = s();
+    let err = s.run("ai.prompt", &json!({"prompt": "Hello"})).unwrap_err();
+    assert!(err.to_string().contains("AI API Key is required"), "{err}");
+}

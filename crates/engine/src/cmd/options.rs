@@ -22,7 +22,7 @@ pub fn specs() -> Vec<CommandSpec> {
     vec![
         CommandSpec::new("file.options", "Options", "File", options)
             .params(
-                r#"{"pane"?: "general|display|proofing|save|language|accessibility|advanced|agents", "author"?: string, "initials"?: string, "units"?: "inches|centimeters|millimeters|points|picas|auto" (auto: the region's), "region"?: string (a locale tag like pl-PL, saved: the paper File › New starts on, the default units and the decimal separator; auto: the system's), "typingReplacesSelection"?: bool, "insertKeyOvertype"?: bool, "overtype"?: bool, "marks"?: {"tabs"?: bool, "spaces"?: bool, "paragraphs"?: bool, "hidden"?: bool}, "checkSpelling"?: bool, "markGrammar"?: bool, "ignoreUppercase"?: bool, "ignoreNumbers"?: bool, "ignoreInternet"?: bool, "dictionariesFolder"?: string (a folder of Hunspell .aff/.dic files searched first, saved; auto: the system locations only), "addWords"?: [string], "removeWords"?: [string]} — with any setting it changes them and opens nothing; without, it opens File › Options (at `pane`). Returns the settings."#,
+                r#"{"pane"?: "general|display|proofing|save|language|accessibility|advanced|agents", "author"?: string, "initials"?: string, "units"?: "inches|centimeters|millimeters|points|picas|auto" (auto: the region's), "region"?: string (a locale tag like pl-PL, saved: the paper File › New starts on, the default units and the decimal separator; auto: the system's), "typingReplacesSelection"?: bool, "insertKeyOvertype"?: bool, "overtype"?: bool, "marks"?: {"tabs"?: bool, "spaces"?: bool, "paragraphs"?: bool, "hidden"?: bool}, "checkSpelling"?: bool, "markGrammar"?: bool, "ignoreUppercase"?: bool, "ignoreNumbers"?: bool, "ignoreInternet"?: bool, "dictionariesFolder"?: string (a folder of Hunspell .aff/.dic files searched first, saved; auto: the system locations only), "addWords"?: [string], "removeWords"?: [string], "aiApiUrl"?: string, "aiApiKey"?: string, "aiModel"?: string} — with any setting it changes them and opens nothing; without, it opens File › Options (at `pane`). Returns the settings."#,
             )
             .pure(),
         CommandSpec::new("text.overtype", "Overtype", "File › Options › Advanced", |s, v| {
@@ -142,6 +142,22 @@ fn options(s: &mut Session, v: &Value) -> CmdResult {
     let add = words_param(v, "addWords")?;
     let remove = words_param(v, "removeWords")?;
 
+    let ai_api_url = match v.get("aiApiUrl") {
+        None | Some(Value::Null) => None,
+        Some(Value::String(s)) => Some(if s.trim().is_empty() { None } else { Some(s.trim().to_string()) }),
+        Some(_) => return Err(CmdError::Params("`aiApiUrl` must be a string".into())),
+    };
+    let ai_api_key = match v.get("aiApiKey") {
+        None | Some(Value::Null) => None,
+        Some(Value::String(s)) => Some(if s.trim().is_empty() { None } else { Some(s.trim().to_string()) }),
+        Some(_) => return Err(CmdError::Params("`aiApiKey` must be a string".into())),
+    };
+    let ai_model = match v.get("aiModel") {
+        None | Some(Value::Null) => None,
+        Some(Value::String(s)) => Some(if s.trim().is_empty() { None } else { Some(s.trim().to_string()) }),
+        Some(_) => return Err(CmdError::Params("`aiModel` must be a string".into())),
+    };
+
     let setting = author.is_some()
         || initials.is_some()
         || units.is_some()
@@ -151,7 +167,10 @@ fn options(s: &mut Session, v: &Value) -> CmdResult {
         || !mark_values.is_empty()
         || check_spelling.is_some()
         || !add.is_empty()
-        || !remove.is_empty();
+        || !remove.is_empty()
+        || ai_api_url.is_some()
+        || ai_api_key.is_some()
+        || ai_model.is_some();
     if let Some(name) = author {
         super::file::set_author(s, &json!({"name": name}))?;
     }
@@ -185,6 +204,15 @@ fn options(s: &mut Session, v: &Value) -> CmdResult {
     }
     if !add.is_empty() || !remove.is_empty() {
         s.persist_user_dictionary(&remove);
+    }
+    if let Some(url) = ai_api_url {
+        s.prefs.ai_api_url = url;
+    }
+    if let Some(key) = ai_api_key {
+        s.prefs.ai_api_key = key;
+    }
+    if let Some(m) = ai_model {
+        s.prefs.ai_model = m;
     }
     if setting {
         // Marks, hidden text and proofing change what is laid out.
@@ -225,6 +253,9 @@ pub fn current(s: &Session) -> Value {
             .into_iter()
             .map(|(lang, dic)| json!({"language": lang.code(), "file": dic.map(|d| d.to_string_lossy().into_owned())}))
             .collect::<Vec<_>>(),
+        "aiApiUrl": pr.ai_api_url,
+        "aiApiKey": pr.ai_api_key,
+        "aiModel": pr.ai_model,
     })
 }
 

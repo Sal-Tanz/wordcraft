@@ -525,6 +525,12 @@ pub struct Prefs {
     /// in Word). A damaged saved value reads as the defaults.
     #[serde(deserialize_with = "crate::cmd::tools::lenient_autocorrect")]
     pub autocorrect: crate::cmd::tools::AutoCorrectPrefs,
+    /// OpenAI-compatible API base URL for AI Assistant feature.
+    pub ai_api_url: Option<String>,
+    /// API key for OpenAI-compatible endpoint.
+    pub ai_api_key: Option<String>,
+    /// AI Model name (e.g. "gpt-4o", "gpt-3.5-turbo").
+    pub ai_model: Option<String>,
 }
 
 impl Default for Prefs {
@@ -546,6 +552,9 @@ impl Default for Prefs {
             ignore_internet: true,
             detect_language: true,
             autocorrect: Default::default(),
+            ai_api_url: None,
+            ai_api_key: None,
+            ai_model: None,
         }
     }
 }
