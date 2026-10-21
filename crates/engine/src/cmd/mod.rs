@@ -1,5 +1,6 @@
 //! Command implementations, one module per area. Each module exposes `specs()`.
 
+pub mod ai;
 pub mod accessibility;
 pub mod canvas;
 pub mod caret;
@@ -82,6 +83,7 @@ pub fn registry() -> Registry {
     v.extend(review::specs());
     v.extend(file::specs());
     v.extend(options::specs());
+    v.extend(ai::specs());
     v.extend(design::specs());
     v.extend(references::specs());
     v.extend(fields::specs());

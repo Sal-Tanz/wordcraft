@@ -15,6 +15,7 @@ wordcraft-fonts = { workspace = true }
 wordcraft-layout = { workspace = true }
 wordcraft-render = { workspace = true }
 wordcraft-proof = { workspace = true }
+ureq = { workspace = true }
 wordcraft-docx = { workspace = true }
 wordcraft-docbin = { workspace = true }
 wordcraft-pdf = { workspace = true }
